@@ -9,14 +9,20 @@
 <table>
     <thead>
     <tr>
-    <td>Contest</td>
-    <td>Deadline</td>
+        <td>Contest</td>
+        <td>Deadline</td>
+        <td>Contest Page</td>
+        <td>Contest Graphic</td>
+        <td>Entries</td>
     </tr>
     </thead>
     {% for contest in contests %}
         <tr>
             <td>{{ contest.name }}</td>
             <td>{{ contest.date }}</td>
+            <td>{{ contest.contest_uri }}</td>
+            <td>{{ contest.contest_graphic_uri }}</td>
+            <td>{{ contest.entry_count }}</td>
         </tr>
     {% endfor %}
 </table>

@@ -21,8 +21,16 @@ def update_contests():
         contest_name = contest.find('img')['alt']
         contest_deadline = contest.find('span', class_='contest-meta-deadline')['data-deadline']
         deadline = datetime.fromisoformat(contest_deadline)
+        deadline_formatted = deadline.strftime('%B %d')
+        contest_uri = 'https://www.instructables.com' + contest.find('a')['href']
+        contest_graphic_uri = contest.find('img')['src']
+        entry_count = contest.find_all('span', class_='contest-meta-count')[1].text
         # TODO: filter out expired contests
-        contests.append({"name": contest_name, "date": deadline.strftime('%B %d')})
+        contests.append({"name": contest_name,
+                         "date": deadline_formatted,
+                         'contest_uri': contest_uri,
+                         'contest_graphic_uri': contest_graphic_uri,
+                         'entry_count': entry_count})
         # print(contest_name + ": " + deadline.strftime('%B %d'))
     return contests
 
