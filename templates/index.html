@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Home</title>
+</head>
+<body>
+<h1>Current Instructables Contests</h1>
+<table>
+    <thead>
+    <tr>
+    <td>Contest</td>
+    <td>Deadline</td>
+    </tr>
+    </thead>
+    {% for contest in contests %}
+        <tr>
+            <td>{{ contest.name }}</td>
+            <td>{{ contest.date }}</td>
+        </tr>
+    {% endfor %}
+</table>
+</body>
+</html>
