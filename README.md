@@ -9,3 +9,5 @@ Data provided includes:
 - Contest deadline
 - (TBD) URI for the specific contest
 - (TBD) URI/Graphic for the specific contest sized down as appropriate for small screens
+- (TBD) Count of entries
+- (TBD) Count of prizes (Optional)
