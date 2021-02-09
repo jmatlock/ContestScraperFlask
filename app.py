@@ -4,11 +4,29 @@ import threading
 import time
 from bs4 import BeautifulSoup
 from datetime import datetime
+from PIL import Image, ImageFilter
+import io
 
 URL = "https://www.instructables.com/contest/"
 contests = []
 
 app = Flask(__name__)
+pyportal_clip_upper_left = (260, 7)
+pyportal_clip_lower_right = (740, 367)
+pyportal_size = (320, 240)
+
+
+def convert_image_url_to_small(url):
+    r = requests.get(url)
+    if r.status_code == 200:
+        image_file = io.BytesIO(r.content)
+        im = Image.open(image_file)
+        im_reduced = im.crop((*pyportal_clip_upper_left, *pyportal_clip_lower_right))\
+            .resize(pyportal_size)
+        im.close()
+        return im_reduced
+    return None
+
 
 def update_contests():
     page = requests.get(URL)
@@ -21,17 +39,20 @@ def update_contests():
         contest_name = contest.find('img')['alt']
         contest_deadline = contest.find('span', class_='contest-meta-deadline')['data-deadline']
         deadline = datetime.fromisoformat(contest_deadline)
+        if deadline < datetime.now():
+            continue
         deadline_formatted = deadline.strftime('%B %d')
         contest_uri = 'https://www.instructables.com' + contest.find('a')['href']
         contest_graphic_uri = contest.find('img')['src']
+        image = convert_image_url_to_small(contest_graphic_uri)
+        image_fname = 'static/' + contest_name.replace(" ", "") + '.png'
+        image.save(image_fname, 'PNG')
         entry_count = contest.find_all('span', class_='contest-meta-count')[1].text
-        # TODO: filter out expired contests
         contests.append({"name": contest_name,
                          "date": deadline_formatted,
                          'contest_uri': contest_uri,
-                         'contest_graphic_uri': contest_graphic_uri,
-                         'entry_count': entry_count})
-        # print(contest_name + ": " + deadline.strftime('%B %d'))
+                         'contest_graphic_uri': image_fname,
+                         'entry_count': entry_count,})
     return contests
 
 @app.before_first_request
