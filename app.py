@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 from PIL import Image, ImageFilter
 import io
+from dataclasses import dataclass
 
 URL = "https://www.instructables.com/contest/"
 contests = []
@@ -14,6 +15,15 @@ app = Flask(__name__)
 pyportal_clip_upper_left = (260, 7)
 pyportal_clip_lower_right = (740, 367)
 pyportal_size = (320, 240)
+
+
+@dataclass
+class Contest:
+    name: str
+    date: datetime
+    contest_uri: str
+    contest_graphic_uri: str
+    entry_count: str
 
 
 def convert_image_url_to_small(url):
@@ -45,15 +55,13 @@ def update_contests():
         contest_uri = 'https://www.instructables.com' + contest.find('a')['href']
         contest_graphic_uri = contest.find('img')['src']
         image = convert_image_url_to_small(contest_graphic_uri)
-        image_fname = 'static/' + contest_name.replace(" ", "") + '.png'
+        image_fname = 'static/contestImg/' + contest_name.replace(" ", "") + '.png'
         image.save(image_fname, 'PNG')
         entry_count = contest.find_all('span', class_='contest-meta-count')[1].text
-        contests.append({"name": contest_name,
-                         "date": deadline_formatted,
-                         'contest_uri': contest_uri,
-                         'contest_graphic_uri': image_fname,
-                         'entry_count': entry_count,})
+        contest_entry = Contest(contest_name, deadline, contest_uri, image_fname, entry_count)
+        contests.append(contest_entry)
     return contests
+
 
 @app.before_first_request
 def setup_server():
@@ -77,9 +85,11 @@ def setup_server():
 def index():
     return render_template('index.html', contests=contests)
 
+
 @app.route('/api/v1/contests', methods=['GET'])
 def get_contests():
     return jsonify(contests)
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

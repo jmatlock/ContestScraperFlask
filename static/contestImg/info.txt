@@ -1,0 +1,3 @@
+This directory is a cache for converted Instructables contest graphic files.
+File are recreated in this directory every time the contest information is
+updated from Instructables.

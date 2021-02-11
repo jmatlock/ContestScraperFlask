@@ -9,7 +9,7 @@ verify_ssl = true
 flask = "*"
 requests = "*"
 beautifulsoup4 = "*"
-pil = "*"
+pillow = "*"
 
 [requires]
 python_version = "3.8"
