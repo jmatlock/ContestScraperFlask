@@ -7,7 +7,13 @@ via a locally run Flask Server which provides a JSON Web API appropriate for Cir
 Data provided includes:
 - Contest name
 - Contest deadline
-- (TBD) URI for the specific contest
-- (TBD) URI/Graphic for the specific contest sized down as appropriate for small screens
-- (TBD) Count of entries
-- (TBD) Count of prizes (Optional)
+- Days till contest deadline
+- URI for the specific contest
+- URI/Graphic for the specific contest sized down as appropriate for small screens
+- Count of entries
+
+Additionally, reference projects for clients are provided using the following devices:
+- Adafruit MagTag
+- Adafruit Matrix Portal M4
+- Adafruit PyPortal
+- (TBD) Mobile phone via IFTTT
