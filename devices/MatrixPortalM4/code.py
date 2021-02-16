@@ -123,8 +123,8 @@ display.show(group)
 
 if not DEBUG:
     # font = bitmap_font.load_font("fonts/IBMPlexMono-Medium-24_jep.bdf")
-    font = bitmap_font.load_font("fonts/Arial-14.bdf")
-    font2 = bitmap_font.load_font("fonts/Arial-12.bdf")
+    font = bitmap_font.load_font("fonts/Arial-12.bdf")
+    font2 = bitmap_font.load_font("fonts/helvR10.bdf")
     small_font = bitmap_font.load_font("fonts/helvR10.bdf")
 else:
     font = terminalio.FONT
