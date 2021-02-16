@@ -1,0 +1,1 @@
+This directory holds all the project files that will support the Adafruit MagTag.

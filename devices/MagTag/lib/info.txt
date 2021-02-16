@@ -1,0 +1,15 @@
+These library directories should be added from the CircuitPython library bundle:
+
+- adafruit_magtag
+- adafruit_portalbase
+- adafruit_bitmap_font
+- adafruit_display_text
+- adafruit_io
+
+These library files should be added from the CircuitPython library bundle:
+
+- adafruit_requests.mpy
+- adafruit_fakerequests.mpy
+- adafruit_miniqr.mpy
+- neopixel.mpy
+- simpleio.mpy

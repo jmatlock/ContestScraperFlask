@@ -4,7 +4,21 @@
     <option name="enabled" value="true" />
   </component>
   <component name="NewModuleRootManager">
-    <content url="file://$MODULE_DIR$" />
+    <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/devices/MagTag/lib/adafruit_bitmap_font" />
+      <excludeFolder url="file://$MODULE_DIR$/devices/MagTag/lib/adafruit_display_text" />
+      <excludeFolder url="file://$MODULE_DIR$/devices/MagTag/lib/adafruit_io" />
+      <excludeFolder url="file://$MODULE_DIR$/devices/MagTag/lib/adafruit_magtag" />
+      <excludeFolder url="file://$MODULE_DIR$/devices/MagTag/lib/adafruit_portalbase" />
+      <excludeFolder url="file://$MODULE_DIR$/devices/PyPortal/lib/adafruit_bitmap_font" />
+      <excludeFolder url="file://$MODULE_DIR$/devices/PyPortal/lib/adafruit_bus_device" />
+      <excludeFolder url="file://$MODULE_DIR$/devices/PyPortal/lib/adafruit_display_text" />
+      <excludeFolder url="file://$MODULE_DIR$/devices/PyPortal/lib/adafruit_esp32spi" />
+      <excludeFolder url="file://$MODULE_DIR$/devices/PyPortal/lib/adafruit_imageload" />
+      <excludeFolder url="file://$MODULE_DIR$/devices/PyPortal/lib/adafruit_io" />
+      <excludeFolder url="file://$MODULE_DIR$/devices/PyPortal/lib/adafruit_portalbase" />
+      <excludeFolder url="file://$MODULE_DIR$/devices/PyPortal/lib/adafruit_pyportal" />
+    </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>

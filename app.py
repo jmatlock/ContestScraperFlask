@@ -20,7 +20,8 @@ pyportal_size = (320, 240)
 @dataclass
 class Contest:
     name: str
-    date: datetime
+    date: str
+    days_until: int
     contest_uri: str
     contest_graphic_uri: str
     entry_count: str
@@ -31,7 +32,7 @@ def convert_image_url_to_small(url):
     if r.status_code == 200:
         image_file = io.BytesIO(r.content)
         im = Image.open(image_file)
-        im_reduced = im.crop((*pyportal_clip_upper_left, *pyportal_clip_lower_right))\
+        im_reduced = im.crop((*pyportal_clip_upper_left, *pyportal_clip_lower_right)) \
             .resize(pyportal_size)
         im.close()
         return im_reduced
@@ -52,13 +53,15 @@ def update_contests():
         if deadline < datetime.now():
             continue
         deadline_formatted = deadline.strftime('%B %d')
+        delta = deadline - datetime.now()
+        days_until = delta.days
         contest_uri = 'https://www.instructables.com' + contest.find('a')['href']
         contest_graphic_uri = contest.find('img')['src']
         image = convert_image_url_to_small(contest_graphic_uri)
         image_fname = 'static/contestImg/' + contest_name.replace(" ", "") + '.png'
         image.save(image_fname, 'PNG')
         entry_count = contest.find_all('span', class_='contest-meta-count')[1].text
-        contest_entry = Contest(contest_name, deadline, contest_uri, image_fname, entry_count)
+        contest_entry = Contest(contest_name, deadline_formatted, days_until, contest_uri, image_fname, entry_count)
         contests.append(contest_entry)
     return contests
 
@@ -72,8 +75,8 @@ def setup_server():
         print('Contest data loaded')
 
     def contest_update_job():
-        print('Waiting a day for next contest update')
-        time.sleep(24 * 60 * 60)  # sleep for a day
+        print('Waiting two hours for next contest update')
+        time.sleep(2 * 60 * 60)  # sleep for two hours
         contest_update()
 
     contest_update()
