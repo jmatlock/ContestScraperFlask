@@ -1,37 +1,36 @@
+import time
 from adafruit_pyportal import PyPortal
 from secrets import secrets
-import time
+import os
+import gc
 
 # Set up where we'll be fetching data from
 CONTEST_DATA_SOURCE = 'http://' + secrets['local_server'] + '/api/v1/contests'
-CONTEST_DATA_LOCATION = []
 
-
-def text_transform(val):
-    print(val)
-    return f'{val}'
 
 class Contests:
-
     class Contest:
         def __init__(self):
             self.name = ''
             self.deadline = ''
             self.days_until = -1
+            self.graphic = None
 
         def get_contest_string(self):
             if self.days_until > 0:
                 if self.days_until > 1:
-                    return f'{self.name}\nends in {self.days_until} days.'
+                    return f'Ends in {self.days_until} days'
                 else:
-                    return f'{self.name}\nends in {self.days_until} day.'
+                    return f'Ends in {self.days_until} day'
             else:
-                return f'{self.name}\nends today!'
+                return f'Ends today!'
+
+        def get_contest_graphic_uri(self):
+            return f'http://{secrets["local_server"]}/{self.graphic}'
 
     def __init__(self):
-        self.index = 0
+        self.index = -1
         self.contests = []
-
 
     def load_contests(self):
         try:
@@ -47,7 +46,10 @@ class Contests:
                 contest.name = entry['name']
                 contest.deadline = entry['date']
                 contest.days_until = entry['days_until']
+                contest.graphic = entry['contest_graphic_uri']
                 self.contests.append(contest)
+            all_data = None
+            gc.collect()
         except RuntimeError as e:
             print("Some error occurred, retrying! -", e)
             return None
@@ -61,35 +63,59 @@ class Contests:
         else:
             return None
 
-pyportal = PyPortal()
+    def get_contest_graphic_uri(self):
+        return self.contests[self.index].get_contest_graphic_uri()
+
+
+pyportal = PyPortal(debug=False)
+
 display = pyportal.display
 network = pyportal.network
+graphics = pyportal.graphics
+
+text_index = pyportal.add_text(text_position=(160, 220), text_anchor_point=(0.5, 0.5),
+                               text_color=0xffffff, text_font="/fonts/Helvetica-Bold-16.bdf",
+                               text_scale=2, is_data=False)
 
 network.connect()
 
 contests = Contests()
 contests.load_contests()
 
-
-# pyportal.add_text(
-#     text_position=(
-#         (pyportal.graphics.display.width // 2) - 1,
-#         (pyportal.graphics.display.height // 2) - 1,
-#     ),
-#     text_scale=2,
-#     text_anchor_point=(0.5, 0.5),
-# )
-
-pyportal.add_text(
-    text_position=(
-        20,
-        20,
-    ),
-    text_scale=4,
-    text_anchor_point=(0.5, 0.5),
-)
+counter = 0
 
 while True:
-    pyportal.set_text(contests.get_next_contest_string())
-    time.sleep(10)
+    counter += 1
+    text = contests.get_next_contest_string()
+    graphic_url = contests.get_contest_graphic_uri()
 
+    print(f'START: Loop #{counter}; Contest {contests.index}')
+    try:
+        os.remove('/sd/contest.bmp')
+    except Exception as e:
+        pass
+
+    retry = 0
+    while retry < 3:
+        try:
+            network.wget(contests.get_contest_graphic_uri(),
+                         '/sd/contest.bmp',
+                         chunk_size=512)
+            break
+        except Exception as e:
+            print(f'Exception {e}, retrying ({retry}')
+            retry += 1
+
+
+    pyportal.set_text('', index=text_index)
+    graphics.set_background('/sd/contest.bmp')
+    time.sleep(1)
+    pyportal.set_text(text, index=text_index)
+
+    text = None
+    graphic_url = None
+    gc.collect()
+
+    print(f'END: Loop #{counter}; Contest {contests.index}')
+
+    time.sleep(15)

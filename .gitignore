@@ -1,4 +1,5 @@
 /static/contestImg/*.png
+/static/contestImg/*.bmp
 /devices/MagTag/secrets.py
 /devices/MatrixPortalM4/secrets.py
 /devices/PyPortal/secrets.py
@@ -18,3 +19,12 @@
 /devices/PyPortal/lib/adafruit_io/
 /devices/PyPortal/lib/adafruit_portalbase/
 /devices/PyPortal/lib/adafruit_pyportal/
+/devices/MatrixPortalM4/lib/adafruit_bitmap_font/
+/devices/MatrixPortalM4/lib/adafruit_bus_device/
+/devices/MatrixPortalM4/lib/adafruit_display_shapes/
+/devices/MatrixPortalM4/lib/adafruit_display_text/
+/devices/MatrixPortalM4/lib/adafruit_esp32spi/
+/devices/MatrixPortalM4/lib/adafruit_io/
+/devices/MatrixPortalM4/lib/adafruit_matrixportal/
+/devices/MatrixPortalM4/lib/adafruit_portalbase/
+/devices/PyPortal/lib/adafruit_display_shapes/
