@@ -9,8 +9,7 @@ import io
 from dataclasses import dataclass
 
 URL = "https://www.instructables.com/contest/"
-contests = []
-meta = None
+UPDATE_EVERY = 120  # Number of minutes between updates from Instructables
 
 app = Flask(__name__)
 pyportal_clip_upper_left = (260, 7)
@@ -29,10 +28,23 @@ class Contest:
 
 
 @dataclass
+class Contests:
+    contests: list
+
+
+contests = Contests([])
+
+
+@dataclass
 class Meta:
+    current_time: str
     last_update: str
+    last_update_dt: datetime
     next_update_minutes: int
     contest_count: int
+
+
+meta = Meta('', '', datetime.now(), UPDATE_EVERY, 0)
 
 
 def convert_image_url_to_small(url):
@@ -45,7 +57,6 @@ def convert_image_url_to_small(url):
         draw = ImageDraw.Draw(im_reduced)
         draw.rectangle([(20, 195), (300, 235)], fill=(0, 0, 0), outline=(255, 255, 255))
         im_reduced = im_reduced.convert(mode="P", palette=Image.ADAPTIVE, colors=256)
-        print(f'Image mode = {im_reduced.mode}')
         im.close()
         return im_reduced
     return None
@@ -73,48 +84,51 @@ def update_contests():
         image_fname = 'static/contestImg/' + contest_name.replace(" ", "") + '.bmp'
         image.save(image_fname, 'BMP')
         entry_count = contest.find_all('span', class_='contest-meta-count')[1].text
-        contest_entry = Contest(contest_name, deadline_formatted, days_until, contest_uri, image_fname, entry_count)
+        contest_entry = Contest(contest_name, deadline_formatted,
+                                days_until, contest_uri,
+                                image_fname, entry_count)
         contests.append(contest_entry)
     return contests
 
 
-@app.before_first_request
-def setup_server():
-    def contest_update(meta):
-        global contests
+def setup_server(meta_data, contests_data):
+    def contest_update(meta_data, contests_data):
         print('Updating contest data')
-        contests = update_contests()
-        meta.last_update = str(datetime.now().strftime('%Y-%m-%d %H:%M'))
-        print(f'Contest data loaded: {meta.last_update}')
-        meta.contest_count = len(contests)
+        contests_data.contests = update_contests()
+        meta_data.last_update_dt = datetime.now()
+        meta_data.last_update = str(meta_data.last_update_dt.strftime('%Y-%m-%d %H:%M'))
+        print(f'Contest data loaded: {meta_data.last_update}')
+        meta_data.contest_count = len(contests_data.contests)
 
-    def contest_update_job():
-        print('Waiting two hours for next contest update')
-        time.sleep(meta.next_update_minutes * 60)  # sleep for two hours
-        contest_update(meta)
+    def contest_update_job(meta_data, contests_data):
+        while True:
+            print(f'Waiting {UPDATE_EVERY} minutes for next contest update')
+            time.sleep(UPDATE_EVERY * 60)  # sleep for two hours
+            contest_update(meta_data, contests_data)
 
-
-    global meta
-    meta = Meta('', 120, 0)
-    contest_update(meta)
-    thread = threading.Thread(target=contest_update_job)
+    contest_update(meta_data, contests_data)
+    thread = threading.Thread(target=contest_update_job, args=(meta_data, contests_data,), daemon=True)
     thread.start()
 
 
 @app.route('/')
 def index():
-    return render_template('index.html', contests=contests)
+    return render_template('index.html', contests=contests.contests)
 
 
 @app.route('/api/v1/contests', methods=['GET'])
 def get_contests():
-    return jsonify(contests)
+    return jsonify(contests.contests)
 
 
 @app.route('/api/v1/meta', methods=['GET'])
 def get_meta():
+    meta.current_time = str(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    meta.next_update_minutes = UPDATE_EVERY - ((datetime.now() - meta.last_update_dt).seconds // 60)
     return jsonify(meta)
 
+
+setup_server(meta, contests)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
