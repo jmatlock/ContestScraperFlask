@@ -1,3 +1,40 @@
+"""
+Instructables Contest Info Display for MagTag
+by James Matlock
+Feb 2021
+
+This project is
+
+In order to run this project you will need the
+following hardware:
+- Adafruit MagTag (https://www.adafruit.com/product/4800)
+- 5V USB C Power Supply (https://www.adafruit.com/product/4298)
+
+This project assumes CircuitPython is already installed on the MagTag.
+More information about installing CircuitPython can be found here:
+
+This project will also require CircuitPython libraries to be included in a
+lib folder when the project is installed on the CIRCUITPY drive of
+the MagTag:
+
+Note that all these libraries may not be used in this particular project, but I'm
+including them for potential future use.
+
+See this page for more info about installing CircuitPython libraries:
+    https://learn.adafruit.com/welcome-to-circuitpython/circuitpython-libraries
+
+Currently the display has the following features:
+- Shows the currently running Instructables contests
+- Shows the number of days till the contest ends
+
+The Instructables contest information feature requires a separate local web
+server be installed that scrapes the Instructables web site and provides
+a local API.
+
+Tutorials and references used as input to this project include:
+
+"""
+
 from adafruit_magtag.magtag import MagTag
 from secrets import secrets
 import alarm
@@ -8,7 +45,6 @@ CONTEST_DATA_LOCATION = []
 
 
 class Contests:
-
     class Contest:
         def __init__(self):
             self.name = ''
@@ -69,7 +105,8 @@ class Contests:
         self.index += 1
         if self.index >= len(self.contests):
             self.index = 0
-        alarm.sleep_memory[0] = self.index
+        alarm.sleep_memory[0] = self.index  # Storing in non-volatile memory so we can cycle
+                                            # through the different contests
 
 
 magtag = MagTag()

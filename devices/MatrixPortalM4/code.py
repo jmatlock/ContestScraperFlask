@@ -1,7 +1,7 @@
 """
 Matrix Clock Plus
 by James Matlock
-Jan 2021
+Feb 2021
 
 This project is a mashup and extension of example projects for the
 Adafruit Matrix Portal. In order to run this project you will need the
@@ -28,25 +28,22 @@ the Matrix Portal:
     adafruit_requests.mpy
     neopixel.mpy
 
+Note that all these libraries may not be used in this particular project, but I'm
+including them for potential future use.
+
 See this page for more info about installing CircuitPython libraries:
     https://learn.adafruit.com/welcome-to-circuitpython/circuitpython-libraries
-
-This project is under development.
 
 Currently the clock has the following features:
 - Tells time
 - Shows date and day of the week
 - Shows the temperature from openweathermap.org
+- Show Instructables contest information
+- Change display colors via the Up/Down buttons on the Matrix Portal card
 
-The plan is for the clock to have the following features:
-- Display "days/weeks/months" until event information.
-- Collect weather info from openweathermap.org and display.
-- Use fixed and scrolling text display. Possibly develop a vertical scrolling
-  method for added variety.
-- Scrape news information and display.
-- Allow configuration via MQTT client/broker.
-- Add interesting "screen saver" or transition options with wipes, game of life,
-  fractal, or other animations.
+The Instructables contest information feature requires a separate local web
+server be installed that scrapes the Instructables web site and provides
+a local API.
 
 Tutorials and references used as input to this project include:
 - https://learn.adafruit.com/network-connected-metro-rgb-matrix-clock
@@ -64,7 +61,6 @@ from adafruit_bitmap_font import bitmap_font
 from adafruit_matrixportal.network import Network
 from adafruit_matrixportal.matrix import Matrix
 
-BLINK = True
 DEBUG = False
 
 months = ['na', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -102,11 +98,11 @@ DATA_SOURCE = (
         "http://api.openweathermap.org/data/2.5/weather?q=" + secrets["openweather_loc"] + "&units=" + UNITS
 )
 DATA_SOURCE += "&appid=" + secrets["openweather_token"]
-current_temp = '0'
 
 # --- Instructables contest data setup ---
 CONTEST_DATA_LOCATION = []
 CONTEST_DATA_SOURCE = ("http://" + secrets["local_server"] + "/api/v1/contests")
+CONTEST_SERVER_META = ("http://" + secrets["local_server"] + "/api/v1/meta")
 
 # --- Drawing setup ---
 group = displayio.Group(max_size=4)  # Create a Group
@@ -122,7 +118,6 @@ group.append(tile_grid)  # Add the TileGrid to the Group
 display.show(group)
 
 if not DEBUG:
-    # font = bitmap_font.load_font("fonts/IBMPlexMono-Medium-24_jep.bdf")
     font = bitmap_font.load_font("fonts/Arial-12.bdf")
     font2 = bitmap_font.load_font("fonts/helvR10.bdf")
     small_font = bitmap_font.load_font("fonts/helvR10.bdf")
@@ -153,95 +148,29 @@ class Weather:
     weather_data = None
 
 
-class Events:
-    def __init__(self):
-        self.index = 0
-        self.events = {'Christmas': [12, 25],
-                       'Halloween': [10, 31],
-                       "Jim's birthday": [5, 29],
-                       'Independence Day': [7, 4],
-                       "New Year's Day": [1, 1],
-                       'MLK Jr. Day': [1, 18],
-                       'Valentines Day': [2, 14],
-                       "St. Patty's Day": [3, 14],
-                       'Summer Solstice': [6, 20],
-                       'Winter Solstice': [12, 21],
-                       }
-
-    def get_next_event_string(self):
-        event = list(self.events.items())[self.index]
-        results = f'{self.get_time_until()}{event[0]}'
-        self.index += 1
-        if self.index >= len(self.events):
-            self.index = 0
-        return results
-
-    def get_time_until(self):
-        event = list(self.events.items())[self.index]
-        # noinspection PyTypeChecker
-        year = time.localtime()[0]
-        event_time = time.struct_time(
-            (
-                year,
-                event[1][0],
-                event[1][1],
-                12,
-                0,
-                0,
-                -1,
-                -1,
-                False,
-            )
-        )
-        remaining = time.mktime(event_time) - time.mktime(time.localtime())
-        if remaining < 0:  # Need to add a year to the event
-            event_time = time.struct_time(
-                (
-                    year+1,
-                    event[1][0],
-                    event[1][1],
-                    12,
-                    0,
-                    0,
-                    -1,
-                    -1,
-                    False,
-                )
-            )
-            remaining = time.mktime(event_time) - time.mktime(time.localtime())
-        if remaining == 0:
-            # oh, its event time!
-            return 'Today is '
-
-        remaining //= (24 * 60 * 60)
-        days_remaining = remaining
-
-        text = f'{days_remaining} day'
-        if days_remaining != 1:
-            text += "s"
-        return text + ' till '
-
-
 class Contests:
 
     class Contest:
-        def __init__(self):
-            self.name = ''
-            self.deadline = ''
-            self.days_until = -1
+        def __init__(self, name='', deadline='', days_until=-1):
+            self.name = name
+            self.deadline = deadline
+            self.days_until = days_until
 
         def get_contest_string(self):
-            if self.days_until > 0:
-                if self.days_until > 1:
-                    return f'{self.name} ends in {self.days_until} days.'
-                else:
-                    return f'{self.name} ends in {self.days_until} day.'
-            else:
+            if self.days_until > 1:
+                return f'{self.name} ends in {self.days_until} days.'
+            elif self.days_until == 1:
+                return f'{self.name} ends in {self.days_until} day.'
+            elif self.days_until == 0:
                 return f'{self.name} ends today!'
+            else:  # This case happens if there is a connection error
+                return f'{self.name}'
 
     def __init__(self):
         self.index = 0
         self.contests = []
+        self.update_minutes = None
+        self.contest_refresh = None
 
     def load_contests(self):
         try:
@@ -250,22 +179,38 @@ class Contests:
             event_label.text = 'Update'
             event_label.x = 0
             all_data = ''
+            meta = ''
             retry = 0
+            self.contests.clear()
             while all_data == '' and retry < 3:
                 retry += 1
                 all_data = network.fetch_data(CONTEST_DATA_SOURCE, json_path=(CONTEST_DATA_LOCATION,))
-                print(f"Retry #{retry}:\nResponse is {all_data}")
+                meta = network.fetch_data(CONTEST_SERVER_META, json_path=(CONTEST_DATA_LOCATION,))
+                if DEBUG:
+                    print(f"Retry #{retry}:\nResponse is {all_data}")
+                    print(f'Meta is {meta}')
             for entry in all_data:
-                contest = self.Contest()
-                contest.name = entry['name']
-                contest.deadline = entry['date']
-                contest.days_until = entry['days_until']
+                contest = self.Contest(name=entry['name'],
+                                       deadline=entry['date'],
+                                       days_until=entry['days_until'])
                 self.contests.append(contest)
-            clock_label.text = ''
-            event_label.text = ''
+            if retry >= 3:
+                contest = self.Contest(name='Web Server unreachable.',
+                                       days_until=-1)
+                self.contests.append(contest)
+                self.update_minutes = 5  # Try again in 5 minutes
+            else:
+                self.update_minutes = meta['next_update_minutes'] + 1  # update 1 minutes after web server
         except RuntimeError as e:
             print("Some error occurred, retrying! -", e)
-            return None
+            contest = self.Contest(name='Web Server unreachable.',
+                                   days_until=-1)
+            self.contests.append(contest)
+            self.update_minutes = 5  # Try again in 5 minutes
+        self.contest_refresh = time.monotonic()
+        clock_label.text = ''
+        event_label.text = ''
+        print(f'Contest data collected. Refresh in {self.update_minutes} minutes.')
 
     def get_next_contest_string(self):
         self.index += 1
@@ -277,12 +222,11 @@ class Contests:
             return None
 
 
-
 def get_weather_info():
     try:
-        clock_label.text = 'Updating'
+        clock_label.text = 'Weather'
         clock_label.x = 0
-        event_label.text = 'Weather'
+        event_label.text = 'Update'
         event_label.x = 0
         value = network.fetch_data(DATA_SOURCE, json_path=(DATA_LOCATION,))
         print("Response is", value)
@@ -294,13 +238,18 @@ def get_weather_info():
         return None
 
 
-def update_time(*, hours=None, minutes=None, weather=None):
+def update_time(*, hours=None, minutes=None, weather=None, contests=None):
     now = time.localtime()  # Get the time values we need
     # Update weather data every 10 minutes
-    if (not weather.weather_refresh) or (time.monotonic() - weather.weather_refresh) > 600:
-        weather.weather_data = get_weather_info()
-        if weather.weather_data:
-            weather.weather_refresh = time.monotonic()
+    if weather:
+        if (not weather.weather_refresh) or (time.monotonic() - weather.weather_refresh) > 600:
+            weather.weather_data = get_weather_info()
+            if weather.weather_data:
+                weather.weather_refresh = time.monotonic()
+
+    if contests:
+        if not contests.contest_refresh or (time.monotonic() - contests.contest_refresh) > (contests.update_minutes * 60):
+            contests.load_contests()
 
     if hours is None:
         hours = now[3]
@@ -354,18 +303,15 @@ def scroll_second_line():
         event_label.text = ''
         event_label.x = display.width
         event_label.y = display.height // 4 * 3
-        # event_label.text = events.get_next_event_string()
         event_label.text = contests.get_next_contest_string()
     else:
         event_label.x -= 1
 
 
 weather = Weather()
-events = Events()
 contests = Contests()
-contests.load_contests()
 last_check = None
-update_time(weather=weather)  # Display whatever time is on the board
+update_time(weather=weather, contests=contests)  # Display whatever time is on the board
 group.append(clock_label)  # add the clock label to the group
 group.append(event_label)
 
@@ -389,21 +335,18 @@ def check_button_press():
 
 while True:
     check_button_press()
-    if last_check is None or time.monotonic() > last_check + 3600:
+    if last_check is None or time.monotonic() > last_check + 3600:  # Once an hour
         try:
             clock_label.text = 'Time'
             clock_label.x = 0
             event_label.text = 'Sync'
             event_label.x = 0
             network.get_local_time()  # Synchronize Board's clock to Internet
-            update_time(
-                weather=weather
-            )
             last_check = time.monotonic()
         except RuntimeError as e:
             print("Some error occured, retrying! -", e)
 
-    update_time(weather=weather)
+    update_time(weather=weather, contests=contests)
     scroll_second_line()
 
     time.sleep(0.03)
