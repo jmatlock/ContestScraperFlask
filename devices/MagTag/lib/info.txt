@@ -10,6 +10,5 @@ These library files should be added from the CircuitPython library bundle:
 
 - adafruit_requests.mpy
 - adafruit_fakerequests.mpy
-- adafruit_miniqr.mpy
 - neopixel.mpy
 - simpleio.mpy

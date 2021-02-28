@@ -3,7 +3,9 @@ Instructables Contest Info Display for PyPortal
 by James Matlock
 Feb 2021
 
-This project is
+This project implements a display of Instructables contest data on
+the Adafruit PyPortal. It requires a local web server which provides
+a unique API that serves the data.
 
 In order to run this project you will need the
 following hardware:
@@ -11,13 +13,13 @@ following hardware:
 - 5V USB Micro Power Supply (https://www.adafruit.com/product/1995)
 - MicroSD Card, 4GB or greater
 
-
 This project assumes CircuitPython is already installed on the PyPortal.
 More information about installing CircuitPython can be found here:
+- https://learn.adafruit.com/adafruit-pyportal/install-circuitpython
 
 This project will also require CircuitPython libraries to be included in a
 lib folder when the project is installed on the CIRCUITPY drive of
-the PyPortal:
+the PyPortal. These are listed in lib/info.txt.
 
 Note that all these libraries may not be used in this particular project, but I'm
 including them for potential future use.
@@ -35,12 +37,13 @@ server be installed that scrapes the Instructables web site and provides
 a local API.
 
 Tutorials and references used as input to this project include:
-
+- https://learn.adafruit.com/adafruit-pyportal
+- https://learn.adafruit.com/circuitpython-display-support-using-displayio
 """
 import time
 from adafruit_pyportal import PyPortal
 from secrets import secrets
-import os
+import os, board, sdcardio, storage
 import gc
 
 DEBUG = False
@@ -109,6 +112,7 @@ class Contests:
             all_data = ''
             meta = ''
             retry = 0
+            self.contests.clear()
             while all_data == '' and retry < 3:
                 retry += 1
                 response = network.fetch(CONTEST_DATA_SOURCE)
@@ -140,10 +144,28 @@ class Contests:
         if self.index + 1 <= len(self.contests):
             return self.contests[self.index].get_contest_string(), self.contests[self.index].get_contest_graphic()
         else:
-            return None, None
+            return "Web Server Offline", None
 
     def get_contest_graphic_uri(self):
         return self.contests[self.index].get_contest_graphic_uri()
+
+
+# Convenience function to purge cache of all graphic files on SD
+def purge_cache():
+    # sd = sdcardio.SDCard(board.SPI(), board.SD_CS)
+    # vfs = storage.VfsFat(sd)
+    # storage.mount(vfs, '/sd')
+    files = os.listdir('/sd')
+    file_count = 0
+    for file in files:
+        if file[-4:] == '.bmp':
+            os.remove(f'/sd/{file}')
+            file_count += 1
+    print(f'Cache cleanup removed {file_count}')
+
+
+def cleanup_cache():
+    pass
 
 
 pyportal = PyPortal(debug=False)
@@ -167,31 +189,15 @@ while True:
     if contests:
         if not contests.contest_refresh or \
                 (time.monotonic() - contests.contest_refresh) > (contests.update_minutes * 60):
-            # TODO: Wipe cached graphics
             contests.load_contests()
+            cleanup_cache()
+
     counter += 1
     text, graphic = contests.get_next_contest_string_and_graphic()
-    # graphic_url = contests.get_contest_graphic_uri()
 
     print(f'START: Loop #{counter}; Contest {contests.index}')
-    # try:
-    #     os.remove('/sd/contest.bmp')
-    # except Exception as e:
-    #     pass
-    #
-    # retry = 0
-    # while retry < 3:
-    #     try:
-    #         network.wget(contests.get_contest_graphic_uri(),
-    #                      '/sd/contest.bmp',
-    #                      chunk_size=512)
-    #         break
-    #     except Exception as e:
-    #         print(f'Exception {e}, retrying ({retry}')
-    #         retry += 1
 
     pyportal.set_text('', index=text_index)
-    # graphics.set_background('/sd/contest.bmp')
     graphics.set_background(graphic)
 
     time.sleep(1)

@@ -21,6 +21,7 @@
                 <tr>
                     <td>Contest</td>
                     <td>Deadline</td>
+                    <td>Days Until</td>
                     <td>Entries</td>
                     <td>Graphic</td>
                 </tr>
@@ -29,6 +30,7 @@
                     <tr>
                         <td><a href="{{ contest.contest_uri }}">{{ contest.name }}</a></td>
                         <td>{{ contest.date }}</td>
+                        <td>{{ contest.days_until }}</td>
                         <td>{{ contest.entry_count }}</td>
                         <td><img src="{{ contest.contest_graphic_uri }}" height="120"/></td>
                     </tr>

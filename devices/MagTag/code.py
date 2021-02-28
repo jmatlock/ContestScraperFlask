@@ -3,7 +3,9 @@ Instructables Contest Info Display for MagTag
 by James Matlock
 Feb 2021
 
-This project is
+This project implements a display of Instructables contest data on
+the Adafruit MagTag. It requires a local web server which provides
+a unique API that serves the data.
 
 In order to run this project you will need the
 following hardware:
@@ -12,10 +14,11 @@ following hardware:
 
 This project assumes CircuitPython is already installed on the MagTag.
 More information about installing CircuitPython can be found here:
+- https://learn.adafruit.com/adafruit-magtag/circuitpython
 
 This project will also require CircuitPython libraries to be included in a
 lib folder when the project is installed on the CIRCUITPY drive of
-the MagTag:
+the MagTag. These are listed in lib/info.txt.
 
 Note that all these libraries may not be used in this particular project, but I'm
 including them for potential future use.
@@ -32,7 +35,8 @@ server be installed that scrapes the Instructables web site and provides
 a local API.
 
 Tutorials and references used as input to this project include:
-
+- https://learn.adafruit.com/adafruit-magtag
+- https://learn.adafruit.com/creating-magtag-projects-with-circuitpython/code-examples
 """
 
 from adafruit_magtag.magtag import MagTag
@@ -46,10 +50,10 @@ CONTEST_DATA_LOCATION = []
 
 class Contests:
     class Contest:
-        def __init__(self):
-            self.name = ''
-            self.deadline = ''
-            self.days_until = -1
+        def __init__(self, name='', deadline='', days_until=-1):
+            self.name = name
+            self.deadline = deadline
+            self.days_until = days_until
 
         def get_contest_string(self):
             return f'{self.name}'
@@ -73,16 +77,16 @@ class Contests:
         try:
             all_data = ''
             retry = 0
+            self.contests.clear()
             while all_data == '' and retry < 3:
                 retry += 1
                 response = network.fetch(CONTEST_DATA_SOURCE)
                 all_data = response.json()
                 print(f"Retry #{retry}:\nResponse is {all_data}")
             for entry in all_data:
-                contest = self.Contest()
-                contest.name = entry['name']
-                contest.deadline = entry['date']
-                contest.days_until = entry['days_until']
+                contest = self.Contest(name=entry['name'],
+                                       deadline=entry['date'],
+                                       days_until=entry['days_until'])
                 self.contests.append(contest)
             if retry >= 3:
                 print("Couldn't access web server")

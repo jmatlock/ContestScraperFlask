@@ -1,3 +1,20 @@
+"""
+Instructables Contest Scraper and Web Server
+by James Matlock
+Feb 2021
+
+This project implements a simple web server that provides a REST API to
+peripheral devices like the Adafruit MagTag, PyPortal, or Matrix Portal.
+The REST API provides information about the latest Instructables contests.
+
+Basically there are three links served up by this web server:
+- http://127.0.0.1:5000/ - This page just shows the information collected.
+- http://127.0.0.1:5000/api/v1/contests - JSON data about the contests
+- http://127.0.0.1:5000/api/v1/meta - JSON data about the server itself
+
+By default, the server responds on all IP addresses at port 5000 on the
+host computer.
+"""
 from flask import Flask, render_template, jsonify
 import requests
 import threading
@@ -7,9 +24,11 @@ from datetime import datetime
 from PIL import Image, ImageDraw
 import io
 from dataclasses import dataclass
+import urllib
 
 URL = "https://www.instructables.com/contest/"
 UPDATE_EVERY = 120  # Number of minutes between updates from Instructables
+# UPDATE_EVERY = 15  # TEST VALUE REMOVE
 
 app = Flask(__name__)
 pyportal_clip_upper_left = (260, 7)
@@ -78,10 +97,10 @@ def update_contests():
         deadline_formatted = deadline.strftime('%B %d')
         delta = deadline - datetime.now()
         days_until = delta.days
-        contest_uri = 'https://www.instructables.com' + contest.find('a')['href']
+        contest_uri = urllib.parse.quote('https://www.instructables.com' + contest.find('a')['href'], safe='/:')
         contest_graphic_uri = contest.find('img')['src']
         image = convert_image_url_to_small(contest_graphic_uri)
-        image_fname = 'static/contestImg/' + contest_name.replace(" ", "") + '.bmp'
+        image_fname = urllib.parse.quote('static/contestImg/' + contest_name.replace(" ", "").replace("#", "") + '.bmp')
         image.save(image_fname, 'BMP')
         entry_count = contest.find_all('span', class_='contest-meta-count')[1].text
         contest_entry = Contest(contest_name, deadline_formatted,
