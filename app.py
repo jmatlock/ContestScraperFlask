@@ -100,7 +100,11 @@ def update_contests():
         contest_uri = urllib.parse.quote('https://www.instructables.com' + contest.find('a')['href'], safe='/:')
         contest_graphic_uri = contest.find('img')['src']
         image = convert_image_url_to_small(contest_graphic_uri)
-        image_fname = urllib.parse.quote('static/contestImg/' + contest_name.replace(" ", "").replace("#", "") + '.bmp')
+        image_fname = urllib.parse.quote('static/contestImg/'
+                                         + contest_name.replace(" ", "")
+                                         .replace("#", "")
+                                         .replace("&", "")
+                                         + '.bmp')
         image.save(image_fname, 'BMP')
         entry_count = contest.find_all('span', class_='contest-meta-count')[1].text
         contest_entry = Contest(contest_name, deadline_formatted,
